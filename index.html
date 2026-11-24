@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f6f7f5">
+  <title>MyMoney — Keuangan lebih terarah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="db.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" data-page-link="dashboard"><span class="brand-icon">↗</span> MyMoney</a>
+      <p class="nav-label">Menu utama</p>
+      <nav class="nav" aria-label="Navigasi utama">
+        <button class="nav-item active" type="button" data-page="dashboard"><span class="ico">▦</span><span>Dashboard</span></button>
+        <button class="nav-item" type="button" data-page="transactions"><span class="ico">⇄</span><span>Uang masuk & keluar</span></button>
+        <button class="nav-item" type="button" data-page="targets"><span class="ico">◎</span><span>Target & kewajiban</span></button>
+        <button class="nav-item" type="button" data-page="budget"><span class="ico">▤</span><span>Anggaran & jadwal</span></button>
+        <button class="nav-item" type="button" data-page="checklist"><span class="ico">☑</span><span>Checklist mingguan</span></button>
+        <button class="nav-item" type="button" data-page="history"><span class="ico">◷</span><span>Riwayat transaksi</span></button>
+      </nav>
+      <div class="side-bottom">
+        <div class="tip-card"><span>🌱</span><strong>Langkah kecil, hasil besar</strong><p>Catat uangmu dengan rutin agar rencana keuangan lebih mudah dijalankan.</p></div>
+        <div class="save-status" id="saveStatus" role="status"><span class="save-dot"></span><span id="saveStatusText">Menghubungkan database…</span></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow">Ruang keuangan pribadimu</div><div class="top-title" id="pageTitle">Dashboard</div></div>
+        <div class="profile"><div class="avatar">K</div><div class="profile-name">Keuangan saya<div class="profile-role">Pengelola keuangan</div></div></div>
+      </header>
+      <section class="welcome">
+        <div><h1 id="pageHeading">Hai, selamat datang! 👋</h1><p id="pageDescription">Lihat saldo dan kondisi keuanganmu secara menyeluruh.</p></div>
+        <div class="today" id="todayLabel"></div>
+      </section>
+
+      <section class="page active" id="page-dashboard" aria-labelledby="pageTitle">
+        <div class="summary-grid">
+          <article class="card balance-card">
+            <div class="balance-label"><span>Saldo tersedia</span><span class="balance-mark" aria-hidden="true">◉</span></div>
+            <div class="balance-amount" id="balance">Rp0</div>
+            <div class="balance-context">Sisa dari seluruh pemasukan setelah pengeluaran</div>
+          </article>
+          <article class="card metric-card">
+            <div class="metric-head"><span>Uang masuk bulan ini</span><span class="metric-icon">↙</span></div>
+            <div class="metric-value" id="monthIncome">Rp0</div>
+            <div class="metric-note"><span>Total masuk</span><strong id="incomeTotal">Rp0</strong></div>
+          </article>
+          <article class="card metric-card">
+            <div class="metric-head"><span>Uang keluar bulan ini</span><span class="metric-icon orange">↗</span></div>
+            <div class="metric-value" id="monthExpense">Rp0</div>
+            <div class="metric-note"><span>Total keluar</span><strong id="expenseTotal">Rp0</strong></div>
+          </article>
+        </div>
+        <div class="dashboard-grid">
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Kondisi keuangan</h2><div class="section-sub">Ringkasan dan hal yang perlu diperhatikan</div></div><span class="condition-badge" id="conditionBadge">Memuat…</span></div>
+            <p class="condition-copy" id="conditionCopy"></p>
+            <div class="quick-actions">
+              <button class="btn primary" type="button" data-go="transactions" data-type="income">＋ Catat uang masuk</button>
+              <button class="btn" type="button" data-go="transactions" data-type="expense">− Catat uang keluar</button>
+            </div>
+          </section>
+          <section class="card assistant">
+            <div class="assistant-head"><div class="bot-icon">✳</div><div><div class="assistant-title">Rekomendasi MyMoney</div><div class="online">Berdasarkan anggaran dan catatanmu</div></div></div>
+            <div class="assistant-copy" id="dashboardAdvice"></div>
+          </section>
+        </div>
+        <section class="card section-card dashboard-targets">
+          <div class="section-head"><div><h2 class="section-title">Progres target</h2><div class="section-sub">Target tabungan, pembayaran utang, dan kewajiban</div></div><button class="btn" type="button" data-go="targets">Lihat semua target →</button></div>
+          <div class="target-list compact" id="dashboardTargets"></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-transactions" aria-labelledby="pageTitle" hidden>
+        <div class="two-column">
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Catat transaksi</h2><div class="section-sub">Tanggal diisi otomatis saat transaksi disimpan</div></div></div>
+            <div class="type-tabs" role="group" aria-label="Jenis transaksi">
+              <button class="type-tab active" type="button" data-type="income">＋ Uang masuk</button>
+              <button class="type-tab" type="button" data-type="expense">− Uang keluar</button>
+            </div>
+            <form id="transactionForm">
+              <input type="hidden" id="transactionType" value="income">
+              <div class="field"><label for="amount">Jumlah (rupiah)</label><input id="amount" type="number" min="1" step="any" placeholder="Contoh: 50000" required></div>
+              <div class="field"><label for="description">Keterangan</label><input id="description" type="text" maxlength="60" placeholder="Contoh: Uang jajan kampus" required></div>
+              <div class="field"><label for="category">Kategori</label><select id="category" required></select></div>
+              <div class="field" id="targetField" hidden><label for="targetSelect">Hubungkan ke target (opsional)</label><select id="targetSelect"></select></div>
+              <div class="date-note"><span>◷</span> Tanggal transaksi: <strong id="entryDate"></strong> (otomatis)</div>
+              <div class="allocation-option" id="allocationField"><label class="check-row"><input id="autoAllocate" type="checkbox" checked><span>Alokasikan setoran arisan otomatis dari uang jajan</span></label></div>
+              <div class="modal-actions"><button class="btn primary" type="submit">Simpan transaksi</button></div>
+            </form>
+          </section>
+          <aside class="card assistant">
+            <div class="assistant-head"><div class="bot-icon">✳</div><div><div class="assistant-title">Rekomendasi alokasi</div><div class="online">Sesuaikan dengan rencanamu</div></div></div>
+            <div class="allocation-breakdown" id="allocationBreakdown"></div>
+            <div class="assistant-copy" id="transactionAdvice"></div>
+            <p class="footnote">Asisten memberi panduan berdasarkan anggaran yang kamu atur, bukan nasihat keuangan profesional.</p>
+          </aside>
+        </div>
+        <section class="card section-card transaction-recent">
+          <div class="section-head"><div><h2 class="section-title">Transaksi terbaru</h2><div class="section-sub">Catatan paling baru</div></div><button class="btn" type="button" data-go="history">Buka riwayat lengkap →</button></div>
+          <div class="transaction-list" id="recentTransactions"></div>
+        </section>
+      </section>
+
+      <section class="page" id="page-targets" aria-labelledby="pageTitle" hidden>
+        <div class="two-column">
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Target pembayaran, utang & tabungan</h2><div class="section-sub">Pantau progres dan tentukan prioritasmu</div></div></div>
+            <div class="target-list" id="targetList"></div>
+          </section>
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Buat target baru</h2><div class="section-sub">Tambahkan tabungan atau pembayaran yang ingin dicapai</div></div></div>
+            <form id="targetForm">
+              <div class="field"><label for="targetName">Nama target</label><input id="targetName" maxlength="40" placeholder="Contoh: Tabungan laptop" required></div>
+              <div class="field"><label for="targetKind">Jenis target</label><select id="targetKind"><option value="savings">Tabungan</option><option value="debt">Pembayaran utang</option><option value="bill">Kewajiban lain</option></select></div>
+              <div class="field"><label for="targetAmount">Jumlah target (rupiah)</label><input id="targetAmount" type="number" min="1" step="any" placeholder="Contoh: 1000000" required></div>
+              <button class="btn primary" type="submit">＋ Simpan target</button>
+            </form>
+            <div class="assistant-copy target-tip">Saat mencatat uang keluar, pilih target terkait untuk memperbarui progres pembayaran atau tabungan.</div>
+          </section>
+        </div>
+      </section>
+
+      <section class="page" id="page-budget" aria-labelledby="pageTitle" hidden>
+        <div class="two-column budget-columns">
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Anggaran uang jajan</h2><div class="section-sub">Perubahan disimpan otomatis</div></div></div>
+            <form id="budgetForm">
+              <div class="field"><label for="dailyAllowance">Uang jajan per hari kuliah (rupiah)</label><input id="dailyAllowance" type="number" min="0" step="any" value="10000"></div>
+              <div class="field"><label for="weeklyArisan">Alokasi arisan per minggu (rupiah)</label><input id="weeklyArisan" type="number" min="0" step="any" value="25000"></div>
+              <div class="field"><label for="dailyFree">Belanja bebas per hari (opsional, rupiah)</label><input id="dailyFree" type="number" min="0" step="any" value="0"></div>
+              <fieldset class="weekday-field"><legend>Jadwal uang jajan</legend>
+                <div class="weekday-list">
+                  <label><input type="checkbox" name="weekday" value="1" checked> Senin</label>
+                  <label><input type="checkbox" name="weekday" value="2" checked> Selasa</label>
+                  <label><input type="checkbox" name="weekday" value="3" checked> Rabu</label>
+                  <label><input type="checkbox" name="weekday" value="4" checked> Kamis</label>
+                  <label><input type="checkbox" name="weekday" value="5" checked> Jumat</label>
+                  <label><input type="checkbox" name="weekday" value="6"> Sabtu</label>
+                  <label><input type="checkbox" name="weekday" value="0"> Minggu</label>
+                </div>
+              </fieldset>
+            </form>
+            <div class="allocation-breakdown budget-breakdown" id="budgetBreakdown"></div>
+          </section>
+          <section class="card section-card">
+            <div class="section-head"><div><h2 class="section-title">Jadwal minggu ini</h2><div class="section-sub">Setoran dan uang jajan per hari</div></div></div>
+            <div class="schedule-list" id="weeklySchedule"></div>
+          </section>
+        </div>
+        <section class="card section-card obligations-card">
+          <div class="section-head"><div><h2 class="section-title">Kewajiban mingguan</h2><div class="section-sub">Jadwalkan arisan, cicilan, atau pembayaran rutin</div></div></div>
+          <div class="obligation-list" id="obligationList"></div>
+          <form class="obligation-form" id="obligationForm">
+            <div class="field"><label for="obligationName">Nama kewajiban</label><input id="obligationName" maxlength="45" placeholder="Contoh: Cicilan bulanan" required></div>
+            <div class="field"><label for="obligationAmount">Jumlah (rupiah)</label><input id="obligationAmount" type="number" min="1" step="any" placeholder="Contoh: 100000" required></div>
+            <div class="field"><label for="obligationDay">Jatuh tempo</label><select id="obligationDay"><option value="1">Senin</option><option value="2">Selasa</option><option value="3">Rabu</option><option value="4">Kamis</option><option value="5" selected>Jumat</option><option value="6">Sabtu</option><option value="0">Minggu</option></select></div>
+            <button class="btn primary" type="submit">＋ Tambah kewajiban</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="page" id="page-checklist" aria-labelledby="pageTitle" hidden>
+        <section class="card section-card">
+          <div class="section-head checklist-head">
+            <div><h2 class="section-title">Checklist keuangan mingguan</h2><div class="section-sub">Centang aktivitas yang sudah dilakukan setiap hari</div></div>
+            <span class="week-label" id="checklistWeek"></span>
+          </div>
+          <p class="checklist-note">Centang menandai aktivitas mingguan. Centang arisan juga mencatat setoran sesuai anggaran; nominal uang jajan, utang, dan tabungan dicatat melalui menu transaksi.</p>
+          <div class="table-wrap">
+            <table class="checklist-table">
+              <thead><tr><th scope="col">Hari</th><th scope="col">Arisan</th><th scope="col">Uang jajan</th><th scope="col">Pinjaman / utang</th><th scope="col">Target nabung</th></tr></thead>
+              <tbody id="weeklyChecklistBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="page" id="page-history" aria-labelledby="pageTitle" hidden>
+        <section class="card section-card">
+          <div class="section-head history-head"><div><h2 class="section-title">Riwayat semua transaksi</h2><div class="section-sub">Seluruh uang masuk dan uang keluar</div></div>
+            <div class="history-filters"><select class="select-small" id="historyFilter" aria-label="Filter jenis transaksi"><option value="all">Semua transaksi</option><option value="income">Uang masuk</option><option value="expense">Uang keluar</option></select><input class="date-filter" type="month" id="monthFilter" aria-label="Filter bulan"></div>
+          </div>
+          <div class="history-summary"><div>Total pemasukan<b id="historyIncome">Rp0</b></div><div>Total pengeluaran<b id="historyExpense">Rp0</b></div><div>Saldo bersih<b id="historyNet">Rp0</b></div></div>
+          <div class="transaction-list full-history" id="historyList"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
