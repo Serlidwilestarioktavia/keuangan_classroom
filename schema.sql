@@ -18,6 +18,14 @@ create table if not exists public.device_pairings (
   consumed_at timestamptz
 );
 
+delete from public.device_pairings older
+using public.device_pairings newer
+where older.owner_id = newer.owner_id
+  and older.ctid < newer.ctid;
+
+create unique index if not exists device_pairings_owner_id_uidx
+  on public.device_pairings (owner_id);
+
 alter table public.user_data enable row level security;
 alter table public.device_access enable row level security;
 alter table public.device_pairings enable row level security;
@@ -68,14 +76,17 @@ create policy "Paired devices can update shared data"
   using (public.can_access_user_data(user_id))
   with check (public.can_access_user_data(user_id));
 
-create or replace function public.create_device_pairing(p_code text)
-returns void
+drop function if exists public.create_device_pairing(text);
+
+create function public.create_device_pairing(p_code text)
+returns text
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
   v_owner_id uuid;
+  v_code text;
 begin
   if auth.uid() is null then
     raise exception 'Perangkat belum terhubung.';
@@ -89,11 +100,15 @@ begin
   where device_id = auth.uid();
   v_owner_id := coalesce(v_owner_id, auth.uid());
 
-  delete from public.device_pairings
-  where owner_id = v_owner_id or expires_at <= now();
+  insert into public.device_pairings (code, owner_id, expires_at, consumed_at)
+  values (p_code, v_owner_id, 'infinity', null)
+  on conflict (owner_id) do nothing;
 
-  insert into public.device_pairings (code, owner_id, expires_at)
-  values (p_code, v_owner_id, now() + interval '10 minutes');
+  select code into v_code
+  from public.device_pairings
+  where owner_id = v_owner_id;
+
+  return v_code;
 end;
 $$;
 
@@ -116,15 +131,12 @@ begin
     raise exception 'Perangkat ini sudah memiliki data. Gunakan perangkat baru untuk menyambungkan kode.';
   end if;
 
-  update public.device_pairings
-  set consumed_at = now()
-  where code = p_code
-    and expires_at > now()
-    and consumed_at is null
-  returning owner_id into v_owner_id;
+  select owner_id into v_owner_id
+  from public.device_pairings
+  where code = p_code;
 
   if v_owner_id is null then
-    raise exception 'Kode tidak valid, kedaluwarsa, atau sudah digunakan.';
+    raise exception 'Kode perangkat tidak valid.';
   end if;
   if v_owner_id = auth.uid() then
     raise exception 'Kode harus dimasukkan dari perangkat yang berbeda.';
