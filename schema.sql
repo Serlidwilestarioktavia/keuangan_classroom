@@ -95,10 +95,20 @@ begin
     raise exception 'Format kode perangkat tidak valid.';
   end if;
 
-  select owner_id into v_owner_id
-  from public.device_access
-  where device_id = auth.uid();
-  v_owner_id := coalesce(v_owner_id, auth.uid());
+  select user_id into v_owner_id
+  from public.user_data
+  where user_id = auth.uid();
+
+  if v_owner_id is null then
+    select access.owner_id into v_owner_id
+    from public.device_access as access
+    join public.user_data as data on data.user_id = access.owner_id
+    where access.device_id = auth.uid();
+  end if;
+
+  if v_owner_id is null then
+    raise exception 'Data perangkat belum tersimpan di Supabase. Tunggu sampai penyimpanan selesai, lalu coba lagi.';
+  end if;
 
   insert into public.device_pairings (code, owner_id, expires_at, consumed_at)
   values (p_code, v_owner_id, 'infinity', null)
